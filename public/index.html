@@ -21,7 +21,8 @@
 <![endif]-->
 
 <div class="wrapper">
-<form method="POST" action="urls">
+<form method="POST" action="urls/new" accept-charset="UTF-8">
+{{ .csrfField }}
 <input type="text" name="url" value="http://google.com" />
 <button>Go!</button>
 </form>
