@@ -9,19 +9,23 @@ import (
 )
 
 type config struct {
-	CSRF_KEY_32 string
+	//Production bool   `json:"PROD"`
+	Env       string `json:"ENV"`
+	CsrfKey32 string `json:"CSRF_KEY_32"`
 }
 
 var C *config
 
-// Perhaps the best would be for the application not to relly
+// Perhaps the best would be for the application not to rely
 // on env variables. But that's not always viable.
 func UpdateEnv(c *config) {
-	fmt.Printf("that! %+v\n", c)
-
 	v := reflect.ValueOf(c).Elem()
 	for i := 0; i < v.NumField(); i += 1 {
-		os.Setenv(v.Type().Field(i).Name, v.Field(i).String())
+		key := v.Type().Field(i).Tag.Get("json")
+		if key == "" {
+			key = v.Type().Field(i).Name
+		}
+		os.Setenv(key, v.Field(i).String())
 	}
 }
 
@@ -38,7 +42,12 @@ func ReadFromJSON(path string, c *config) {
 }
 
 func Setup() {
-	C = new(config)
+	C = &config{
+		//Production: false,
+		Env:       "development",
+		CsrfKey32: "writearandom32bytestringforcsrf.",
+	}
+
 	ReadFromJSON("./env.json", C)
 	UpdateEnv(C)
 }

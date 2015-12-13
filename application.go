@@ -34,7 +34,11 @@ func route() http.Handler {
 		panic("CSRF_KEY_32 env variable not found.")
 	}
 
-	return csrf.Protect([]byte(csrfKey))(r)
+	if conf.C.Env == "production" {
+		return csrf.Protect([]byte(csrfKey))(r)
+	} else {
+		return csrf.Protect([]byte(csrfKey), csrf.Secure(false))(r)
+	}
 }
 
 func main() {
