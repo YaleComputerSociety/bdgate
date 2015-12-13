@@ -11,27 +11,40 @@
 <!-- Place favicon.ico in the root directory -->
 <link href='https://fonts.googleapis.com/css?family=Berkshire+Swash' rel='stylesheet' type='text/css'>
 
-<link rel="stylesheet" href="css/bundle.css">
+<link rel="stylesheet" href="static/css/bootstrap.min.css">
+<link rel="stylesheet" href="static/css/bundle.css">
 <script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'></script>
-<script src="js/vendor/modernizr-2.8.3.min.js"></script>
+<script src="static/js/vendor/modernizr-2.8.3.min.js"></script>
 </head>
 <body>
 <!--[if lt IE 8]>
 <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
 <![endif]-->
 
-<div class="wrapper">
-<form method="POST" action="urls/new" accept-charset="UTF-8">
-{{ .csrfField }}
-<input type="text" name="url" value="http://google.com" />
-<button>Go!</button>
-</form>
+<div class="container">
+    <div class="bulldog">
+        <img src="static/img/bulldog.png" alt="bawowow"/>
+    </div>
+    <h1 class="title">
+        Bulldog Gate
+    </h1>
+    <p>
+    We shorten your url so that <strong>only Yale students* can access it.</strong>
+    </p>
+    <form method="POST" action="urls/new" class="form-inline" accept-charset="UTF-8">
+        {{ .csrfField }}
+        <input type="text" class="form-control" name="url" placeholder="A url to shorten." />
+        <button class="btn btn-info">Bowowow!</button>
+    </form>
+    <small>
+        * Meaning people with Net Ids. :)
+    </small>
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.3.min.js"><\/script>')</script>
-<script src="js/plugins.js"></script>
-<script src="js/main.js"></script>
+<script src="static/js/plugins.js"></script>
+<script src="static/js/main.js"></script>
 
 <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
 <script>

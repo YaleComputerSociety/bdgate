@@ -41,6 +41,11 @@ func route() http.Handler {
 	}
 }
 
+func serveStatic() http.Handler {
+	fs := http.FileServer(http.Dir("./public"))
+	return http.StripPrefix("/static", fs)
+}
+
 func main() {
 	f, _ := os.Create("/var/log/golang/golang-server.log")
 	defer f.Close()
@@ -51,6 +56,7 @@ func main() {
 	g := globals.Setup()
 	defer globals.Close(g)
 
+	http.Handle("/static/", serveStatic())
 	http.Handle("/", route())
 
 	port := os.Getenv("PORT")

@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"../conf"
 	"../globals"
 	"../util"
 
@@ -25,10 +26,25 @@ const (
 	casUrl2 = "https://secure.its.yale.edu/cas/serviceValidate?"
 )
 
-// Templates
-var (
-	tmplIndex = template.Must(template.ParseFiles("public/index.html"))
+const (
+	tmplIndexPath = "views/index.html"
 )
+
+var tmplCache map[string]*template.Template
+
+func GetTemplate(path string) *template.Template {
+	if conf.C.Env == "production" {
+		// Cache templates in production.
+		if tmpl, ok := tmplCache[path]; ok == false {
+			tmplCache[path] = template.Must(template.ParseFiles(path))
+			return tmplCache[path]
+		} else {
+			return tmpl
+		}
+	} else {
+		return template.Must(template.ParseFiles(path))
+	}
+}
 
 const redisSchemaVersion = 0
 
@@ -181,7 +197,8 @@ func validateTicket(ticket, service string) (bool, error) {
 func GetIndex(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving / to %s...\n", r.RemoteAddr)
 
-	tmplIndex.ExecuteTemplate(w, "index.html", map[string]interface{}{
+	tmpl := GetTemplate(tmplIndexPath)
+	tmpl.ExecuteTemplate(w, "index.html", map[string]interface{}{
 		csrf.TemplateTag: csrf.TemplateField(r),
 	})
 }

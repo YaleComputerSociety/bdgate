@@ -1,18 +1,16 @@
 {
-  "name": "YPncks",
+  "name": "",
   "description": ".",
   "version": "0.0.0",
   "private": true,
   "homepage": "",
   "readmeFilename": "README.md",
-  "author": "Felipe Aragão Pires <pires.a.felipe@gmail.com> (http://f03lipe.github.com)",
   "license": "BSD",
   "main": "master.js",
   "scripts": {},
   "gitHead": "",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/f03lipe/"
+    "type": "git"
   },
   "engines": {
     "node": "5.0.x"

@@ -13,7 +13,7 @@ module.exports = function (grunt) {
 
 	grunt.config.set('less', {
 		production: {
-			files: { 'css/bundle.css': 'less/index.less' },
+			files: { '../public/css/bundle.css': 'less/index.less' },
 			options: { compress: true },
 			plugins: [
 				new (require('less-plugin-autoprefix'))({browsers: ["last 2 versions"]}),
