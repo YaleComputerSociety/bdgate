@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"../conf"
 	"../util"
 
 	"github.com/asaskevich/govalidator"
@@ -19,11 +20,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	casUrl1 = "https://secure.its.yale.edu/cas/login?service="
+	casUrl2 = "https://secure.its.yale.edu/cas/serviceValidate?"
+)
+
+// Templates
 var (
 	tmplIndex = template.Must(template.ParseFiles("public/index.html"))
 )
 
-const indexPage = "public/index.html"
+const redisSchemaVersion = 0
 
 func printError(r interface{}) {
 	log.Printf("Error: %s.\n", r)
@@ -35,7 +42,7 @@ func printError(r interface{}) {
 
 func genNewId() int64 {
 	// Atomically get last used id and increase count.
-	id, err := redis.Int64(credis.Do("INCR", "global:lastId"))
+	id, err := redis.Int64(conf.Redis.Do("INCR", "global:lastId"))
 
 	if err != nil {
 		panic("Redigo failed to INCR global:lastId.")
@@ -92,7 +99,7 @@ func GetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skey := fmt.Sprintf("urls:%d", id.Int64())
-	reply, err := redis.Values(credis.Do("HGETALL", skey))
+	reply, err := redis.Values(conf.Redis.Do("HGETALL", skey))
 	if err == redis.ErrNil || len(reply) == 0 {
 		http.Error(w, "Sorry. No url exists for this.", 404)
 		panic("urls:. hash not found for id " + id.String())
@@ -201,16 +208,12 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: check if this url has already been stored?
-
-	// READ ME:
-
-	// that would be collisions (lol, not happening), and the inability
-	// to have the same url being inserted more than once in the system.
+	// README:
+	// - Should we be hashing urls here?
 	var id util.UUId
 	for {
 		id = *util.NewUUId(genNewId())
-		if r, err := credis.Do("GET", "urls:"+id.String()); err != nil {
+		if r, err := conf.Redis.Do("GET", "urls:"+id.String()); err != nil {
 			panic("ERROR: Failed to Get in redis client.\n")
 		} else if r == nil {
 			// id not in urlsIds:* yet. Perfect!
@@ -222,7 +225,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 
 	// Store to database.
 	skey := fmt.Sprintf("urls:%d", id.Int64())
-	if _, err := credis.Do("HMSET", skey,
+	if _, err := conf.Redis.Do("HMSET", skey,
 		"user", "foo",
 		"base58", id.Base58(),
 		"url", url,
@@ -232,7 +235,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skey = fmt.Sprintf("shorts:%s", id.Base58())
-	if _, err := credis.Do("SET", skey, id.Int64()); err != nil {
+	if _, err := conf.Redis.Do("SET", skey, id.Int64()); err != nil {
 		panic("Failed to SET.\n" + err.Error())
 	}
 

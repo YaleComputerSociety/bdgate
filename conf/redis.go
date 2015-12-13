@@ -1,4 +1,4 @@
-package config
+package conf
 
 import (
 	"log"
@@ -8,21 +8,21 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-type config struct {
-	redis *redis.Conn
-}
+const (
+	redisDefaultDDb     = 4
+	redisDefaultAddress = ":6379"
+)
 
-var C *config
-
-func setupRedis() *redis.Conn {
+func setupRedis() redis.Conn {
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
-		addr = ":6379"
+		addr = redisDefaultAddress
+
 	}
 
 	dbIndex, err := strconv.Atoi(os.Getenv("REDIS_DB"))
 	if err != nil {
-		dbIndex = 4
+		dbIndex = redisDefaultDDb
 	}
 
 	client, err := redis.Dial("tcp", addr, redis.DialDatabase(dbIndex))
@@ -32,13 +32,9 @@ func setupRedis() *redis.Conn {
 
 	log.Println("Redis started.")
 
-	return &client
+	return client
 }
 
-func Setup() *config {
-	C = new(config)
-
-	C.redis = setupRedis()
-
-	return C
+func closeRedis(conn redis.Conn) {
+	conn.Close()
 }
