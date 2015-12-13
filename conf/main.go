@@ -1,25 +1,44 @@
 package conf
 
-import "github.com/garyburd/redigo/redis"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"reflect"
+)
 
 type config struct {
-	Redis redis.Conn
+	CSRF_KEY_32 string
 }
-
-var Redis redis.Conn
 
 var C *config
 
-func Setup() *config {
-	C = new(config)
+// Perhaps the best would be for the application not to relly
+// on env variables. But that's not always viable.
+func UpdateEnv(c *config) {
+	fmt.Printf("that! %+v\n", c)
 
-	Redis = setupRedis()
-
-	C.Redis = Redis
-
-	return C
+	v := reflect.ValueOf(c).Elem()
+	for i := 0; i < v.NumField(); i += 1 {
+		os.Setenv(v.Type().Field(i).Name, v.Field(i).String())
+	}
 }
 
-func Close(c *config) {
-	closeRedis(c.Redis)
+func ReadFromJSON(path string, c *config) {
+	body, err := ioutil.ReadFile(path)
+	if err != nil {
+		fmt.Printf("File error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := json.Unmarshal(body, &c); err != nil {
+		panic("Failed to read config JSON.\n" + err.Error())
+	}
+}
+
+func Setup() {
+	C = new(config)
+	ReadFromJSON("./env.json", C)
+	UpdateEnv(C)
 }

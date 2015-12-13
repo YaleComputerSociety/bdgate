@@ -11,7 +11,7 @@ import (
 	"text/template"
 	"time"
 
-	"../conf"
+	"../globals"
 	"../util"
 
 	"github.com/asaskevich/govalidator"
@@ -42,7 +42,7 @@ func printError(r interface{}) {
 
 func genNewId() int64 {
 	// Atomically get last used id and increase count.
-	id, err := redis.Int64(conf.Redis.Do("INCR", "global:lastId"))
+	id, err := redis.Int64(globals.Redis.Do("INCR", "global:lastId"))
 
 	if err != nil {
 		panic("Redigo failed to INCR global:lastId.")
@@ -99,7 +99,7 @@ func GetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skey := fmt.Sprintf("urls:%d", id.Int64())
-	reply, err := redis.Values(conf.Redis.Do("HGETALL", skey))
+	reply, err := redis.Values(globals.Redis.Do("HGETALL", skey))
 	if err == redis.ErrNil || len(reply) == 0 {
 		http.Error(w, "Sorry. No url exists for this.", 404)
 		panic("urls:. hash not found for id " + id.String())
@@ -213,7 +213,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 	var id util.UUId
 	for {
 		id = *util.NewUUId(genNewId())
-		if r, err := conf.Redis.Do("GET", "urls:"+id.String()); err != nil {
+		if r, err := globals.Redis.Do("GET", "urls:"+id.String()); err != nil {
 			panic("ERROR: Failed to Get in redis client.\n")
 		} else if r == nil {
 			// id not in urlsIds:* yet. Perfect!
@@ -225,7 +225,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 
 	// Store to database.
 	skey := fmt.Sprintf("urls:%d", id.Int64())
-	if _, err := conf.Redis.Do("HMSET", skey,
+	if _, err := globals.Redis.Do("HMSET", skey,
 		"user", "foo",
 		"base58", id.Base58(),
 		"url", url,
@@ -235,7 +235,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skey = fmt.Sprintf("shorts:%s", id.Base58())
-	if _, err := conf.Redis.Do("SET", skey, id.Int64()); err != nil {
+	if _, err := globals.Redis.Do("SET", skey, id.Int64()); err != nil {
 		panic("Failed to SET.\n" + err.Error())
 	}
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
 	"log"
 	"net/http"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"os"
 
 	"./conf"
+	"./globals"
 	"./handlers"
 
 	"github.com/gorilla/csrf"
@@ -18,15 +18,6 @@ import (
 const (
 	defaultPort int = 5000
 )
-
-func genRandomKey(len int) ([]byte, error) {
-	b := make([]byte, len)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
 
 func route() http.Handler {
 	r := mux.NewRouter().Schemes("http").Subrouter()
@@ -47,19 +38,21 @@ func route() http.Handler {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = strconv.Itoa(defaultPort)
-	}
-
-	config := conf.Setup()
-	defer conf.Close(config)
 	f, _ := os.Create("/var/log/golang/golang-server.log")
 	defer f.Close()
 	// log.SetOutput(f)
 
+	conf.Setup()
+
+	g := globals.Setup()
+	defer globals.Close(g)
+
 	http.Handle("/", route())
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = strconv.Itoa(defaultPort)
+	}
 	log.Printf("Listening on port %s\n\n", port)
 	http.ListenAndServe(":"+port, nil)
 }
