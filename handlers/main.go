@@ -156,7 +156,7 @@ func GetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isValid == false {
-		http.Error(w, "Invalid token.", 403)
+		http.Error(w, "Unauthorized access.", 403)
 		return
 	}
 
@@ -180,7 +180,7 @@ func GetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	reply, err := redis.Values(globals.Redis.Do("HGETALL", skey))
 	if err == redis.ErrNil || len(reply) == 0 {
 		http.Error(w, "Sorry. No url exists for this.", 404)
-		panic("urls:. hash not found for id " + id.String())
+		return
 	} else if err != nil {
 		panic("Failed to HGET.\n" + err.Error())
 	}
@@ -194,8 +194,37 @@ func GetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, p2.Url, 301)
 }
 
+func existsUrlWithShort(code string) bool {
+	if util.IsValidBase58(code) == false {
+		return false
+	}
+
+	id, err := util.GenIdFromBase58(code)
+	if err != nil {
+		return false
+	}
+
+	skey := fmt.Sprintf("urls:%d", id.Int64())
+	reply, err := redis.Values(globals.Redis.Do("HGETALL", skey))
+	if err == redis.ErrNil || len(reply) == 0 {
+		return false
+	} else if err != nil {
+		panic("Failed to get urls:<id>.\n" + err.Error())
+	}
+
+	return true
+}
+
 func GetIndex(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving / to %s...\n", r.RemoteAddr)
+
+	url := r.URL.Query().Get("new")
+	if url != "" {
+		// Make sure url exists, to prevent XSS attacks.
+		if !existsUrlWithShort(url) {
+			http.Redirect(w, r, "/", 301)
+		}
+	}
 
 	tmpl := GetTemplate(tmplIndexPath)
 	tmpl.ExecuteTemplate(w, "index.html", map[string]interface{}{
@@ -258,11 +287,7 @@ func PostUrl(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received url=%s id=%d '%s'", url, id, id.Base58())
 
-	// short := "/urls/" + id.Base58()
-
-	http.Redirect(w, r, "/?done="+id.Base58(), 301)
-	//message := "Hey! Your short is <a href=\"" + short + "\">" + short + "</a>"
-	//w.Write([]byte(message))
+	http.Redirect(w, r, "/?new="+id.Base58(), 301)
 }
 
 func GetUrl(w http.ResponseWriter, r *http.Request) {

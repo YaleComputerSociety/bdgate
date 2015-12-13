@@ -38,14 +38,16 @@ func (u *UUId) String() string {
 }
 
 func GenIdFromBase58(input string) (*UUId, error) {
+	if IsValidBase58(input) == false {
+		return nil, fmt.Errorf("Invalid string.")
+	}
+
 	sum := int64(0)
 	base := len(input)
+
 	for _, b := range []byte(input) {
 		sum *= int64(base)
 		index := bytes.IndexByte([]byte(base58), b)
-		if index == -1 {
-			return nil, fmt.Errorf("Invalid string.")
-		}
 		sum += int64(index)
 	}
 	return NewUUId(sum), nil

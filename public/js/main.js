@@ -20,7 +20,7 @@ function displayShortenedUrl(url) {
 }
 
 $(function () {
-    var url = getQueryVariable("done");
+    var url = getQueryVariable("new");
     if (url) {
         displayShortenedUrl(url);
     }
