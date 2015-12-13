@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -138,9 +139,9 @@ func HandleGetUrl(w http.ResponseWriter, r *http.Request) {
 
 func validateTicket(ticket, service string) (bool, error) {
 	v := url.Values{}
+	// Setting ?format=JSON is not working.
 	v.Set("ticket", ticket)
 	v.Set("service", service)
-	// Setting ?format=JSON is not working.
 
 	// Reach CAS server to validate user ticket.
 	log.Printf("Reaching %s.\n", casUrl2+v.Encode())
@@ -151,9 +152,51 @@ func validateTicket(ticket, service string) (bool, error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	fmt.Printf("body: %s\n", body)
+	// Response is an XML Object.
+	// Success looks like:
+	//
+	// <cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+	//   <cas:authenticationSuccess>
+	//     <cas:user>username</cas:user>
+	//     <cas:proxyGrantingTicket>PGTIOU-84678-8a9d...</cas:proxyGrantingTicket>
+	//   </cas:authenticationSuccess>
+	// </cas:serviceResponse>
+	//
+	// Failure looks like:
+	//
+	// <cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+	//   <cas:authenticationFailure code="INVALID_TICKET">
+	//     Ticket ST-1856339-aA5Yuvrxzpv8Tau1cYQ7 not recognized
+	//   </cas:authenticationFailure>
+	// </cas:serviceResponse>
+	// .
 
-	return false, nil
+	var XmlResult struct {
+		XMLName xml.Name `xml:"serviceResponse"`
+
+		Success struct {
+			User   string `xml:"user"`
+			Ticket string `xml:"proxyGrantingTicket"`
+		} `xml:"authenticationSuccess"`
+
+		Failure struct {
+			Message string `xml:",chardata"`
+			Code    string `xml:"code,attr"`
+		} `xml:"authenticationFailure"`
+	}
+
+	err = xml.Unmarshal(body, &XmlResult)
+	if err != nil {
+		return false, fmt.Errorf("Failed to parse XML.")
+	}
+
+	fmt.Printf("xml result: %+v\n", XmlResult)
+
+	if XmlResult.Failure.Code == "" {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func HandleGetUrlCallback(w http.ResponseWriter, r *http.Request) {
@@ -183,8 +226,6 @@ func HandleGetUrlCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("Valid: %v\n", isValid)
-
-	return
 
 	id, err := util.GenIdFromBase58(base58)
 	if err != nil {
@@ -247,6 +288,7 @@ func setupRedis() redis.Conn {
 }
 
 func main() {
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
